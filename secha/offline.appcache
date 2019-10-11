@@ -1,5 +1,5 @@
 ﻿CACHE MANIFEST
-#1570717902
+#1570798749
 data.js
 c2runtime.js
 jquery-2.1.1.min.js
@@ -33,6 +33,7 @@ images/collection-sheet0.png
 images/open_lootbox-sheet0.png
 images/screens-sheet0.png
 images/screens-sheet1.png
+images/screens-sheet2.png
 images/lootbox-sheet0.png
 images/lootbox-sheet1.png
 images/rotator-sheet0.png
@@ -79,6 +80,8 @@ images/backof4-sheet0.png
 images/backof4-sheet1.png
 images/backof4-sheet2.png
 images/rarities-sheet0.png
+images/rarities-sheet1.png
+images/rarities-sheet2.png
 images/overtexture-sheet0.png
 images/overtexture-sheet1.png
 images/overtexture-sheet2.png
@@ -92,6 +95,17 @@ images/useless-sheet0.png
 images/button_login-sheet0.png
 images/bground-sheet0.png
 images/saving-sheet0.png
+images/secretcode.png
+images/tenki-sheet0.png
+images/shop_button-sheet0.png
+images/kupiti-sheet0.png
+images/number-sheet0.png
+images/number-sheet1.png
+images/reshetka-sheet0.png
+images/reshetka-sheet1.png
+images/number_red-sheet0.png
+images/number_red-sheet1.png
+images/everything-sheet0.png
 icon-16.png
 icon-32.png
 icon-114.png

@@ -1,0 +1,17 @@
+{
+	"main": "index.html",
+	"name": "JumpMeatRestart",
+	"description": "Hardest game ever. Or... not?",
+	"version": "1.0",
+	"window": {
+		"icon": "logo.png",
+		"toolbar": false,
+		"width": 840,
+		"height": 480,
+		"position": "center",
+		"show": true
+	},
+	"dom_storage_quota": 50,
+	"user-agent": "Mozilla/5.0 (%osinfo) AppleWebKit/%webkit_ver (KHTML, like Gecko, Chrome, Safari) NodeWebkit/%nwver",
+	"chromium-args": "--disable-extensions --disable-plugins --disable-internal-flash --disable-popup-blocking --enable-gamepad --enable-html5-camera --allow-file-access-from-files --disable-software-rasterizer"
+}

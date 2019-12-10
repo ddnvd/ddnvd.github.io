@@ -20861,6 +20861,5 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.cnds.IsAnimPlaying,
 	cr.plugins_.Sprite.prototype.cnds.CompareInstanceVar,
 	cr.plugins_.Sprite.prototype.acts.SetInstanceVar,
-	cr.system_object.prototype.acts.LoadState,
-	cr.system_object.prototype.cnds.OnLoadFailed
+	cr.system_object.prototype.acts.LoadState
 ];};

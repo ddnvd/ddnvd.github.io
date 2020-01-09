@@ -18052,8 +18052,8 @@ cr.behaviors.Fade = function(runtime)
 	behaviorProto.exps = new Exps();
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Browser,
 	cr.plugins_.Touch,
+	cr.plugins_.Browser,
 	cr.plugins_.Sprite,
 	cr.behaviors.Fade,
 	cr.plugins_.Touch.prototype.cnds.OnTouchObject,

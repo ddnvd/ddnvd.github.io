@@ -18930,8 +18930,7 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.acts.SetVisible,
 	cr.behaviors.Fade.prototype.acts.RestartFade,
 	cr.plugins_.Sprite.prototype.cnds.IsVisible,
-	cr.plugins_.Keyboard.prototype.cnds.OnKey,
-	cr.plugins_.Keyboard.prototype.cnds.IsKeyDown,
+	cr.plugins_.Touch.prototype.cnds.OnDoubleTapGestureObject,
 	cr.plugins_.Sprite.prototype.acts.SetWidth,
 	cr.plugins_.Browser.prototype.acts.GoToURL
 ];};

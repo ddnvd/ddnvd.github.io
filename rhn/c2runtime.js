@@ -22590,14 +22590,14 @@ cr.behaviors.Sin = function(runtime)
 	behaviorProto.exps = new Exps();
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Spritefont2,
-	cr.plugins_.Audio,
-	cr.plugins_.Touch,
-	cr.plugins_.Keyboard,
-	cr.plugins_.Sprite,
-	cr.plugins_.Function,
-	cr.plugins_.TiledBg,
 	cr.plugins_.NinePatch,
+	cr.plugins_.Audio,
+	cr.plugins_.Spritefont2,
+	cr.plugins_.Touch,
+	cr.plugins_.Function,
+	cr.plugins_.Sprite,
+	cr.plugins_.Keyboard,
+	cr.plugins_.TiledBg,
 	cr.behaviors.Bullet,
 	cr.behaviors.Sin,
 	cr.behaviors.Fade,

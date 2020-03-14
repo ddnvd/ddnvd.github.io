@@ -1,5 +1,5 @@
 ﻿CACHE MANIFEST
-#1584032008
+#1584214360
 data.js
 c2runtime.js
 jquery-2.1.1.min.js
@@ -41,6 +41,17 @@ images/fader-sheet0.png
 images/wh_bg.png
 images/ddnvd_games-sheet0.png
 images/ddnvd_games-sheet1.png
+images/intro-sheet0.png
+images/company-sheet0.png
+images/kartinka-sheet0.png
+images/camp_button-sheet0.png
+images/camp_button-sheet1.png
+images/rukovodstvo-sheet0.png
+images/dalee-sheet0.png
+images/gal_image-sheet0.png
+images/icon-sheet0.png
+images/icon-sheet1.png
+images/icon-sheet2.png
 media/arab.ogg
 media/walk.ogg
 media/exp.ogg

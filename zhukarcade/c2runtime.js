@@ -2498,7 +2498,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		if (s.locDestEnd && (v !== s.lpDestEndX || v2 !== s.lpDestEndY))
 		{
 			s.lpDestEndX = v;
-			s.lpDestEndY = v;
+			s.lpDestEndY = v2;
 			gl.uniform2f(s.locDestEnd, v, v2);
 		}
 		v = mat4param[6];
@@ -3212,10 +3212,16 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 			canvas.width = cr.nextHighestPowerOfTwo(img.width);
 			canvas.height = cr.nextHighestPowerOfTwo(img.height);
 			var ctx = canvas.getContext("2d");
-			ctx["webkitImageSmoothingEnabled"] = linearsampling;
-			ctx["mozImageSmoothingEnabled"] = linearsampling;
-			ctx["msImageSmoothingEnabled"] = linearsampling;
-			ctx["imageSmoothingEnabled"] = linearsampling;
+			if (typeof ctx["imageSmoothingEnabled"] !== "undefined")
+			{
+				ctx["imageSmoothingEnabled"] = linearsampling;
+			}
+			else
+			{
+				ctx["webkitImageSmoothingEnabled"] = linearsampling;
+				ctx["mozImageSmoothingEnabled"] = linearsampling;
+				ctx["msImageSmoothingEnabled"] = linearsampling;
+			}
 			ctx.drawImage(img,
 						  0, 0, img.width, img.height,
 						  0, 0, canvas.width, canvas.height);
@@ -3378,20 +3384,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 ;
 (function()
 {
-	function window_innerWidth()
-	{
-		if (typeof jQuery !== "undefined")
-			return jQuery(window).width();
-		else
-			return window.innerWidth;
-	};
-	function window_innerHeight()
-	{
-		if (typeof jQuery !== "undefined")
-			return jQuery(window).height();
-		else
-			return window.innerHeight;
-	};
 	var raf = window["requestAnimationFrame"] ||
 	  window["mozRequestAnimationFrame"]    ||
 	  window["webkitRequestAnimationFrame"] ||
@@ -3465,6 +3457,13 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		{
 			this.isMobile = /(blackberry|bb10|playbook|palm|symbian|nokia|windows\s+ce|phone|mobile|tablet|kindle|silk)/i.test(navigator.userAgent);
 		}
+		this.isWKWebView = !!(this.isiOS && this.isCordova && window["webkit"]);
+		this.httpServer = null;
+		this.httpServerUrl = "";
+		if (this.isWKWebView)
+		{
+			this.httpServer = (cordova && cordova["plugins"] && cordova["plugins"]["CorHttpd"]) ? cordova["plugins"]["CorHttpd"] : null;
+		}
 		if (typeof cr_is_preview !== "undefined" && !this.isNWjs && (window.location.search === "?nw" || /nodewebkit/i.test(navigator.userAgent) || /nwjs/i.test(navigator.userAgent)))
 		{
 			this.isNWjs = true;
@@ -3490,7 +3489,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		{
 			window["ondragover"] = function(e) { e.preventDefault(); return false; };
 			window["ondrop"] = function(e) { e.preventDefault(); return false; };
-			require("nw.gui")["App"]["clearCache"]();
+			if (window["nwgui"] && window["nwgui"]["App"]["clearCache"])
+				window["nwgui"]["App"]["clearCache"]();
 		}
 		if (this.isAndroidStockBrowser && typeof jQuery !== "undefined")
 		{
@@ -3541,6 +3541,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		this.lastSaveJson = "";
 		this.signalledContinuousPreview = false;
 		this.suspendDrawing = false;		// for hiding display until continuous preview loads
+		this.fireOnCreateAfterLoad = [];	// for delaying "On create" triggers until loading complete
 		this.dt = 0;
         this.dt1 = 0;
 		this.minimumFramerate = 30;
@@ -3614,6 +3615,40 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	Runtime.prototype.requestProjectData = function ()
 	{
 		var self = this;
+		if (this.isWKWebView)
+		{
+			if (this.httpServer)
+			{
+				this.httpServer["startServer"]({
+					"port": 0,
+					"localhost_only": true
+				}, function (url)
+				{
+					self.httpServerUrl = url;
+					self.fetchLocalFileViaCordovaAsText("data.js", function (str)
+					{
+						self.loadProject(JSON.parse(str));
+					}, function (err)
+					{
+						alert("Error fetching data.js");
+					});
+				}, function (err)
+				{
+					alert("error starting local server: " + err);
+				});
+			}
+			else
+			{
+				this.fetchLocalFileViaCordovaAsText("data.js", function (str)
+				{
+					self.loadProject(JSON.parse(str));
+				}, function (err)
+				{
+					alert("Error fetching data.js");
+				});
+			}
+			return;
+		}
 		var xhr;
 		if (this.isWindowsPhone8)
 			xhr = new ActiveXObject("Microsoft.XMLHTTP");
@@ -3699,7 +3734,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		var attribs;
 		var alpha_canvas = !!(this.forceCanvasAlpha || (this.alphaBackground && !(this.isNWjs || this.isWinJS || this.isWindowsPhone8 || this.isCrosswalk || this.isCordova || this.isAmazonWebApp)));
 		if (this.fullscreen_mode > 0)
-			this["setSize"](window_innerWidth(), window_innerHeight(), true);
+			this["setSize"](window.innerWidth, window.innerHeight, true);
 		try {
 			if (this.enableWebGL && (this.isCocoonJs || this.isEjecta || !this.isDomFree))
 			{
@@ -3835,10 +3870,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 					};
 					this.ctx = this.canvas.getContext("2d", attribs);
 				}
-				this.ctx["webkitImageSmoothingEnabled"] = this.linearSampling;
-				this.ctx["mozImageSmoothingEnabled"] = this.linearSampling;
-				this.ctx["msImageSmoothingEnabled"] = this.linearSampling;
-				this.ctx["imageSmoothingEnabled"] = this.linearSampling;
+				this.setCtxImageSmoothingEnabled(this.ctx, this.linearSampling);
 			}
 			this.overlay_canvas = null;
 			this.overlay_ctx = null;
@@ -3871,7 +3903,9 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 				});
 				jQuery(window).blur(function ()
 				{
-					self["setSuspended"](true);
+					var parent = window.parent;
+					if (!parent || !parent.document.hasFocus())
+						self["setSuspended"](true);
 				});
 			}
 		}
@@ -3918,9 +3952,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	{
 		var offx = 0, offy = 0;
 		var neww = 0, newh = 0, intscale = 0;
-		var tryHideAddressBar = (this.isiPhoneiOS6 && this.isSafari && !navigator["standalone"] && !this.isDomFree && !this.isCordova);
-		if (tryHideAddressBar)
-			h += 60;		// height of Safari iPhone iOS 6 address bar
 		if (this.lastWindowWidth === w && this.lastWindowHeight === h && !force)
 			return;
 		this.lastWindowWidth = w;
@@ -3998,13 +4029,6 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		}
 		if (mode < 2)
 			this.aspect_scale = dpr;
-		if (this.isRetina && this.isiPad && dpr > 1)	// don't apply to iPad 1-2
-		{
-			if (w >= 1024)
-				w = 1023;		// 2046 retina pixels
-			if (h >= 1024)
-				h = 1023;
-		}
 		this.cssWidth = Math.round(w);
 		this.cssHeight = Math.round(h);
 		this.width = Math.round(w * dpr);
@@ -4102,17 +4126,12 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		}
 		if (this.ctx)
 		{
-			this.ctx["webkitImageSmoothingEnabled"] = this.linearSampling;
-			this.ctx["mozImageSmoothingEnabled"] = this.linearSampling;
-			this.ctx["msImageSmoothingEnabled"] = this.linearSampling;
-			this.ctx["imageSmoothingEnabled"] = this.linearSampling;
+			this.setCtxImageSmoothingEnabled(this.ctx, this.linearSampling);
 		}
 		this.tryLockOrientation();
-		if (!this.isDomFree && (tryHideAddressBar || this.isiPhone))
+		if (this.isiPhone && !this.isCordova)
 		{
-			window.setTimeout(function () {
-				window.scrollTo(0, 1);
-			}, 100);
+			window.scrollTo(0, 0);
 		}
 	};
 	Runtime.prototype.tryLockOrientation = function ()
@@ -4124,7 +4143,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 			orientation = "landscape";
 		try {
 			if (screen["orientation"] && screen["orientation"]["lock"])
-				screen["orientation"]["lock"](orientation);
+				screen["orientation"]["lock"](orientation).catch(function(){});
 			else if (screen["lockOrientation"])
 				screen["lockOrientation"](orientation);
 			else if (screen["webkitLockOrientation"])
@@ -4180,6 +4199,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	Runtime.prototype["setSuspended"] = function (s)
 	{
 		var i, len;
+		var self = this;
 		if (s && !this.isSuspended)
 		{
 			cr.logexport("[Construct 2] Suspending");
@@ -4239,7 +4259,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		{
 			var loaderImage = new Image();
 			loaderImage.crossOrigin = "anonymous";
-			loaderImage.src = "loading-logo.png";
+			this.setImageSrc(loaderImage, "loading-logo.png");
 			this.loaderlogos = {
 				logo: loaderImage
 			};
@@ -4594,7 +4614,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 			else
 			{
 				img_.crossOrigin = "anonymous";			// required for Arcade sandbox compatibility
-				img_.src = src_;
+				this.setImageSrc(img_, src_);			// work around WKWebView problems
 			}
 		}
 		this.wait_for_textures.push(img_);
@@ -4662,6 +4682,12 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		var ctx = this.ctx || this.overlay_ctx;
 		if (this.overlay_canvas)
 			this.positionOverlayCanvas();
+		var curwidth = window.innerWidth;
+		var curheight = window.innerHeight;
+		if (this.lastWindowWidth !== curwidth || this.lastWindowHeight !== curheight)
+		{
+			this["setSize"](curwidth, curheight);
+		}
 		this.progress = 0;
 		this.last_progress = -1;
 		var self = this;
@@ -4919,6 +4945,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		{
 			this.loadingprogress = 1;
 			this.trigger(cr.system_object.prototype.cnds.OnLoadFinished, null);
+			if (window["C2_RegisterSW"])		// note not all platforms use SW
+				window["C2_RegisterSW"]();
 		}
 		if (navigator["splashscreen"] && navigator["splashscreen"]["hide"])
 			navigator["splashscreen"]["hide"]();
@@ -4961,13 +4989,13 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		var isfullscreen = (document["mozFullScreen"] || document["webkitIsFullScreen"] || document["fullScreen"] || !!document["msFullscreenElement"]) && !this.isCordova;
 		if ((isfullscreen || this.isNodeFullscreen) && this.fullscreen_scaling > 0)
 			fsmode = this.fullscreen_scaling;
-		if (fsmode > 0 && (!this.isiOS || window.self !== window.top))
+		if (fsmode > 0)	// r222: experimentally enabling this workaround for all platforms
 		{
 			var curwidth = window.innerWidth;
 			var curheight = window.innerHeight;
 			if (this.lastWindowWidth !== curwidth || this.lastWindowHeight !== curheight)
 			{
-				this["setSize"](window_innerWidth(), window_innerHeight());
+				this["setSize"](curwidth, curheight);
 			}
 		}
 		if (!this.isDomFree)
@@ -5018,6 +5046,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 				this.isloading = false;
 				this.progress = 1;
 				this.trigger(cr.system_object.prototype.cnds.OnLoadFinished, null);
+				if (window["C2_RegisterSW"])
+					window["C2_RegisterSW"]();
 			}
 		}
 		this.logic(raf_time);
@@ -5061,12 +5091,14 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 			this.cpuutilisation = this.logictime;
 			this.logictime = 0;
 		}
+		var wallDt = 0;
 		if (this.last_tick_time !== 0)
 		{
 			var ms_diff = cur_time - this.last_tick_time;
 			if (ms_diff < 0)
 				ms_diff = 0;
-			this.dt1 = ms_diff / 1000.0; // dt measured in seconds
+			wallDt = ms_diff / 1000.0; // dt measured in seconds
+			this.dt1 = wallDt;
 			if (this.dt1 > 0.5)
 				this.dt1 = 0;
 			else if (this.dt1 > 1 / this.minimumFramerate)
@@ -5075,7 +5107,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		this.last_tick_time = cur_time;
         this.dt = this.dt1 * this.timescale;
         this.kahanTime.add(this.dt);
-		this.wallTime.add(this.dt1);
+		this.wallTime.add(wallDt);		// prevent min/max framerate affecting wall clock
 		var isfullscreen = (document["mozFullScreen"] || document["webkitIsFullScreen"] || document["fullScreen"] || !!document["msFullscreenElement"] || this.isNodeFullscreen) && !this.isCordova;
 		if (this.fullscreen_mode >= 2 /* scale */ || (isfullscreen && this.fullscreen_scaling > 0))
 		{
@@ -5222,7 +5254,30 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		if (prev_layout == changeToLayout)
 			cr.clearArray(this.system.waits);
 		cr.clearArray(this.registered_collisions);
+		this.runLayoutChangeMethods(true);
 		changeToLayout.startRunning();
+		this.runLayoutChangeMethods(false);
+		this.redraw = true;
+		this.layout_first_tick = true;
+		this.ClearDeathRow();
+	};
+	Runtime.prototype.runLayoutChangeMethods = function (isBeforeChange)
+	{
+		var i, len, beh, type, j, lenj, inst, k, lenk, binst;
+		for (i = 0, len = this.behaviors.length; i < len; i++)
+		{
+			beh = this.behaviors[i];
+			if (isBeforeChange)
+			{
+				if (beh.onBeforeLayoutChange)
+					beh.onBeforeLayoutChange();
+			}
+			else
+			{
+				if (beh.onLayoutChange)
+					beh.onLayoutChange();
+			}
+		}
 		for (i = 0, len = this.types_by_index.length; i < len; i++)
 		{
 			type = this.types_by_index[i];
@@ -5231,22 +5286,35 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 			for (j = 0, lenj = type.instances.length; j < lenj; j++)
 			{
 				inst = type.instances[j];
-				if (inst.onLayoutChange)
-					inst.onLayoutChange();
+				if (isBeforeChange)
+				{
+					if (inst.onBeforeLayoutChange)
+						inst.onBeforeLayoutChange();
+				}
+				else
+				{
+					if (inst.onLayoutChange)
+						inst.onLayoutChange();
+				}
 				if (inst.behavior_insts)
 				{
 					for (k = 0, lenk = inst.behavior_insts.length; k < lenk; k++)
 					{
 						binst = inst.behavior_insts[k];
-						if (binst.onLayoutChange)
-							binst.onLayoutChange();
+						if (isBeforeChange)
+						{
+							if (binst.onBeforeLayoutChange)
+								binst.onBeforeLayoutChange();
+						}
+						else
+						{
+							if (binst.onLayoutChange)
+								binst.onLayoutChange();
+						}
 					}
 				}
 			}
 		}
-		this.redraw = true;
-		this.layout_first_tick = true;
-		this.ClearDeathRow();
 	};
 	Runtime.prototype.pretickMe = function (inst)
     {
@@ -5886,7 +5954,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	{
 		var sol = type.getCurrentSol();
 		var i, j, inst, len;
-		var lx, ly;
+		var orblock = this.getCurrentEventStack().current_event.orblock;
+		var lx, ly, arr;
 		if (sol.select_all)
 		{
 			if (!inverted)
@@ -5907,14 +5976,17 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 					else
 						sol.instances.push(inst);
 				}
+				else if (orblock)
+					sol.else_instances.push(inst);
 			}
 		}
 		else
 		{
 			j = 0;
-			for (i = 0, len = sol.instances.length; i < len; i++)
+			arr = (orblock ? sol.else_instances : sol.instances);
+			for (i = 0, len = arr.length; i < len; i++)
 			{
-				inst = sol.instances[i];
+				inst = arr[i];
 				inst.update_bbox();
 				lx = inst.layer.canvasToLayer(ptx, pty, true);
 				ly = inst.layer.canvasToLayer(ptx, pty, false);
@@ -5922,6 +5994,8 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 				{
 					if (inverted)
 						return false;
+					else if (orblock)
+						sol.instances.push(inst);
 					else
 					{
 						sol.instances[j] = sol.instances[i];
@@ -5930,7 +6004,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 				}
 			}
 			if (!inverted)
-				sol.instances.length = j;
+				arr.length = j;
 		}
 		type.applySolToContainer();
 		if (inverted)
@@ -6701,6 +6775,16 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		var evinfo = this.getCurrentEventStack();
 		return evinfo.current_event.conditions[evinfo.cndindex];
 	};
+	Runtime.prototype.getCurrentConditionObjectType = function ()
+	{
+		var cnd = this.getCurrentCondition();
+		return cnd.type;
+	};
+	Runtime.prototype.isCurrentConditionFirst = function ()
+	{
+		var evinfo = this.getCurrentEventStack();
+		return evinfo.cndindex === 0;
+	};
 	Runtime.prototype.getCurrentAction = function ()
 	{
 		var evinfo = this.getCurrentEventStack();
@@ -6821,6 +6905,16 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		this.snapshotCanvas = [format_, quality_];
 		this.redraw = true;		// force redraw so snapshot is always taken
 	};
+	function IsIndexedDBAvailable()
+	{
+		try {
+			return !!window.indexedDB;
+		}
+		catch (e)
+		{
+			return false;
+		}
+	};
 	function makeSaveDb(e)
 	{
 		var db = e.target.result;
@@ -6828,39 +6922,51 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 	};
 	function IndexedDB_WriteSlot(slot_, data_, oncomplete_, onerror_)
 	{
-		var request = indexedDB.open("_C2SaveStates");
-		request.onupgradeneeded = makeSaveDb;
-		request.onerror = onerror_;
-		request.onsuccess = function (e)
+		try {
+			var request = indexedDB.open("_C2SaveStates");
+			request.onupgradeneeded = makeSaveDb;
+			request.onerror = onerror_;
+			request.onsuccess = function (e)
+			{
+				var db = e.target.result;
+				db.onerror = onerror_;
+				var transaction = db.transaction(["saves"], "readwrite");
+				var objectStore = transaction.objectStore("saves");
+				var putReq = objectStore.put({"slot": slot_, "data": data_ });
+				putReq.onsuccess = oncomplete_;
+			};
+		}
+		catch (err)
 		{
-			var db = e.target.result;
-			db.onerror = onerror_;
-			var transaction = db.transaction(["saves"], "readwrite");
-			var objectStore = transaction.objectStore("saves");
-			var putReq = objectStore.put({"slot": slot_, "data": data_ });
-			putReq.onsuccess = oncomplete_;
-		};
+			onerror_(err);
+		}
 	};
 	function IndexedDB_ReadSlot(slot_, oncomplete_, onerror_)
 	{
-		var request = indexedDB.open("_C2SaveStates");
-		request.onupgradeneeded = makeSaveDb;
-		request.onerror = onerror_;
-		request.onsuccess = function (e)
-		{
-			var db = e.target.result;
-			db.onerror = onerror_;
-			var transaction = db.transaction(["saves"]);
-			var objectStore = transaction.objectStore("saves");
-			var readReq = objectStore.get(slot_);
-			readReq.onsuccess = function (e)
+		try {
+			var request = indexedDB.open("_C2SaveStates");
+			request.onupgradeneeded = makeSaveDb;
+			request.onerror = onerror_;
+			request.onsuccess = function (e)
 			{
-				if (readReq.result)
-					oncomplete_(readReq.result["data"]);
-				else
-					oncomplete_(null);
+				var db = e.target.result;
+				db.onerror = onerror_;
+				var transaction = db.transaction(["saves"]);
+				var objectStore = transaction.objectStore("saves");
+				var readReq = objectStore.get(slot_);
+				readReq.onsuccess = function (e)
+				{
+					if (readReq.result)
+						oncomplete_(readReq.result["data"]);
+					else
+						oncomplete_(null);
+				};
 			};
-		};
+		}
+		catch (err)
+		{
+			onerror_(err);
+		}
 	};
 	Runtime.prototype.signalContinuousPreview = function ()
 	{
@@ -6898,7 +7004,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		{
 			this.ClearDeathRow();
 			savingJson = this.saveToJSONString();
-			if (window.indexedDB && !this.isCocoonJs)
+			if (IsIndexedDBAvailable() && !this.isCocoonJs)
 			{
 				IndexedDB_WriteSlot(savingToSlot, savingJson, function ()
 				{
@@ -6922,6 +7028,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 					catch (f)
 					{
 						cr.logexport("Failed to save game state: " + e + "; " + f);
+						self.trigger(cr.system_object.prototype.cnds.OnSaveFailed, null);
 					}
 				});
 			}
@@ -6939,6 +7046,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 				catch (e)
 				{
 					cr.logexport("Error saving to WebStorage: " + e);
+					self.trigger(cr.system_object.prototype.cnds.OnSaveFailed, null);
 				}
 			}
 			this.saveToSlot = "";
@@ -6947,7 +7055,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		}
 		if (loadingFromSlot.length)
 		{
-			if (window.indexedDB && !this.isCocoonJs)
+			if (IsIndexedDBAvailable() && !this.isCocoonJs)
 			{
 				IndexedDB_ReadSlot(loadingFromSlot, function (result_)
 				{
@@ -7087,7 +7195,7 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 			{
 				a = this.actsBySid[p];
 				if (cr.hasAnyOwnProperty(a.extra))
-					oacts[p] = { "ex": a.extra };
+					oacts[p] = { "ex": CopyExtraObject(a.extra) };
 			}
 		}
 		var ovars = o["events"]["vars"];
@@ -7205,19 +7313,33 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 			}
 		}
 		var ocnds = o["events"]["cnds"];
-		for (p in ocnds)
+		for (p in this.cndsBySid)
 		{
-			if (ocnds.hasOwnProperty(p) && this.cndsBySid.hasOwnProperty(p))
+			if (this.cndsBySid.hasOwnProperty(p))
 			{
-				this.cndsBySid[p].extra = ocnds[p]["ex"];
+				if (ocnds.hasOwnProperty(p))
+				{
+					this.cndsBySid[p].extra = ocnds[p]["ex"];
+				}
+				else
+				{
+					this.cndsBySid[p].extra = {};
+				}
 			}
 		}
 		var oacts = o["events"]["acts"];
-		for (p in oacts)
+		for (p in this.actsBySid)
 		{
-			if (oacts.hasOwnProperty(p) && this.actsBySid.hasOwnProperty(p))
+			if (this.actsBySid.hasOwnProperty(p))
 			{
-				this.actsBySid[p].extra = oacts[p]["ex"];
+				if (oacts.hasOwnProperty(p))
+				{
+					this.actsBySid[p].extra = oacts[p]["ex"];
+				}
+				else
+				{
+					this.actsBySid[p].extra = {};
+				}
 			}
 		}
 		var ovars = o["events"]["vars"];
@@ -7230,6 +7352,12 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		}
 		this.next_uid = rt["next_uid"];
 		this.isLoadingState = false;
+		for (i = 0, len = this.fireOnCreateAfterLoad.length; i < len; ++i)
+		{
+			inst = this.fireOnCreateAfterLoad[i];
+			this.trigger(Object.getPrototypeOf(inst.type.plugin).cnds.OnCreated, inst);
+		}
+		cr.clearArray(this.fireOnCreateAfterLoad);
 		this.system.loadFromJSON(o["system"]);
 		for (i = 0, len = this.types_by_index.length; i < len; i++)
 		{
@@ -7459,6 +7587,115 @@ quat4.str=function(a){return"["+a[0]+", "+a[1]+", "+a[2]+", "+a[3]+"]"};
 		if (o["data"])
 			inst.loadFromJSON(o["data"]);
 	};
+	Runtime.prototype.fetchLocalFileViaCordova = function (filename, successCallback, errorCallback)
+	{
+		var path = cordova["file"]["applicationDirectory"] + "www/" + filename;
+		window["resolveLocalFileSystemURL"](path, function (entry)
+		{
+			entry.file(successCallback, errorCallback);
+		}, errorCallback);
+	};
+	Runtime.prototype.fetchLocalFileViaCordovaAsText = function (filename, successCallback, errorCallback)
+	{
+		this.fetchLocalFileViaCordova(filename, function (file)
+		{
+			var reader = new FileReader();
+			reader.onload = function (e)
+			{
+				successCallback(e.target.result);
+			};
+			reader.onerror = errorCallback;
+			reader.readAsText(file);
+		}, errorCallback);
+	};
+	var queuedArrayBufferReads = [];
+	var activeArrayBufferReads = 0;
+	var MAX_ARRAYBUFFER_READS = 8;
+	Runtime.prototype.maybeStartNextArrayBufferRead = function()
+	{
+		if (!queuedArrayBufferReads.length)
+			return;		// none left
+		if (activeArrayBufferReads >= MAX_ARRAYBUFFER_READS)
+			return;		// already got maximum number in-flight
+		activeArrayBufferReads++;
+		var job = queuedArrayBufferReads.shift();
+		this.doFetchLocalFileViaCordovaAsArrayBuffer(job.filename, job.successCallback, job.errorCallback);
+	};
+	Runtime.prototype.fetchLocalFileViaCordovaAsArrayBuffer = function (filename, successCallback_, errorCallback_)
+	{
+		var self = this;
+		queuedArrayBufferReads.push({
+			filename: filename,
+			successCallback: function (result)
+			{
+				activeArrayBufferReads--;
+				self.maybeStartNextArrayBufferRead();
+				successCallback_(result);
+			},
+			errorCallback: function (err)
+			{
+				activeArrayBufferReads--;
+				self.maybeStartNextArrayBufferRead();
+				errorCallback_(err);
+			}
+		});
+		this.maybeStartNextArrayBufferRead();
+	};
+	Runtime.prototype.doFetchLocalFileViaCordovaAsArrayBuffer = function (filename, successCallback, errorCallback)
+	{
+		this.fetchLocalFileViaCordova(filename, function (file)
+		{
+			var reader = new FileReader();
+			reader.onload = function (e)
+			{
+				successCallback(e.target.result);
+			};
+			reader.readAsArrayBuffer(file);
+		}, errorCallback);
+	};
+	Runtime.prototype.fetchLocalFileViaCordovaAsURL = function (filename, successCallback, errorCallback)
+	{
+		this.fetchLocalFileViaCordovaAsArrayBuffer(filename, function (arrayBuffer)
+		{
+			var blob = new Blob([arrayBuffer]);
+			var url = URL.createObjectURL(blob);
+			successCallback(url);
+		}, errorCallback);
+	};
+	Runtime.prototype.isAbsoluteUrl = function (url)
+	{
+		return /^(?:[a-z]+:)?\/\//.test(url) || url.substr(0, 5) === "data:"  || url.substr(0, 5) === "blob:";
+	};
+	Runtime.prototype.setImageSrc = function (img, src)
+	{
+		if (this.isWKWebView && !this.isAbsoluteUrl(src))
+		{
+			this.fetchLocalFileViaCordovaAsURL(src, function (url)
+			{
+				img.src = url;
+			}, function (err)
+			{
+				alert("Failed to load image: " + err);
+			});
+		}
+		else
+		{
+			img.src = src;
+		}
+	};
+	Runtime.prototype.setCtxImageSmoothingEnabled = function (ctx, e)
+	{
+		if (typeof ctx["imageSmoothingEnabled"] !== "undefined")
+		{
+			ctx["imageSmoothingEnabled"] = e;
+		}
+		else
+		{
+			ctx["webkitImageSmoothingEnabled"] = e;
+			ctx["mozImageSmoothingEnabled"] = e;
+			ctx["msImageSmoothingEnabled"] = e;
+		}
+	};
 	cr.runtime = Runtime;
 	cr.createRuntime = function (canvasid)
 	{
@@ -7536,6 +7773,8 @@ window["cr_setSuspended"] = function(s)
 		this.angle = 0;
 		this.first_visit = true;
 		this.name = m[0];
+		this.originalWidth = m[1];
+		this.originalHeight = m[2];
 		this.width = m[1];
 		this.height = m[2];
 		this.unbounded_scrolling = m[3];
@@ -7641,6 +7880,8 @@ window["cr_setSuspended"] = function(s)
 			this.event_sheet.updateDeepIncludes();
 		}
 		this.runtime.running_layout = this;
+		this.width = this.originalWidth;
+		this.height = this.originalHeight;
 		this.scrollX = (this.runtime.original_width / 2);
 		this.scrollY = (this.runtime.original_height / 2);
 		var i, k, len, lenk, type, type_instances, inst, iid, t, s, p, q, type_data, layer;
@@ -7772,10 +8013,17 @@ window["cr_setSuspended"] = function(s)
 			console.log("Estimated VRAM at layout start: " + this.runtime.glwrap.textureCount() + " textures, approx. " + Math.round(this.runtime.glwrap.estimateVRAM() / 1024) + " kb");
 		}
 		*/
-		for (i = 0, len = created_instances.length; i < len; i++)
+		if (this.runtime.isLoadingState)
 		{
-			inst = created_instances[i];
-			this.runtime.trigger(Object.getPrototypeOf(inst.type.plugin).cnds.OnCreated, inst);
+			cr.shallowAssignArray(this.runtime.fireOnCreateAfterLoad, created_instances);
+		}
+		else
+		{
+			for (i = 0, len = created_instances.length; i < len; i++)
+			{
+				inst = created_instances[i];
+				this.runtime.trigger(Object.getPrototypeOf(inst.type.plugin).cnds.OnCreated, inst);
+			}
 		}
 		cr.clearArray(created_instances);
 		if (!this.runtime.isLoadingState)
@@ -7908,10 +8156,7 @@ window["cr_setSuspended"] = function(s)
 			}
 			if (ctx_changed)
 			{
-				layout_ctx["webkitImageSmoothingEnabled"] = this.runtime.linearSampling;
-				layout_ctx["mozImageSmoothingEnabled"] = this.runtime.linearSampling;
-				layout_ctx["msImageSmoothingEnabled"] = this.runtime.linearSampling;
-				layout_ctx["imageSmoothingEnabled"] = this.runtime.linearSampling;
+				this.runtime.setCtxImageSmoothingEnabled(layout_ctx, this.runtime.linearSampling);
 			}
 		}
 		layout_ctx.globalAlpha = 1;
@@ -8294,9 +8539,22 @@ window["cr_setSuspended"] = function(s)
 				glw.clearRect(clearleft, y, clearright - clearleft, h);
 				if (inst)
 				{
+					var pixelWidth;
+					var pixelHeight;
+					if (inst.curFrame && inst.curFrame.texture_img)
+					{
+						var img = inst.curFrame.texture_img;
+						pixelWidth = 1.0 / img.width;
+						pixelHeight = 1.0 / img.height;
+					}
+					else
+					{
+						pixelWidth = 1.0 / inst.width;
+						pixelHeight = 1.0 / inst.height;
+					}
 					glw.setProgramParameters(rendertarget,					// backTex
-											 1.0 / inst.width,				// pixelWidth
-											 1.0 / inst.height,				// pixelHeight
+											 pixelWidth,
+											 pixelHeight,
 											 rcTex2.left, rcTex2.top,		// destStart
 											 rcTex2.right, rcTex2.bottom,	// destEnd
 											 layerScale,
@@ -8609,7 +8867,8 @@ window["cr_setSuspended"] = function(s)
 			if (!hasPersistBehavior || this.layout.first_visit)
 			{
 				inst = this.runtime.createInstanceFromInit(initial_inst, this, true);
-;
+				if (!inst)
+					continue;		// may have skipped creation due to fallback effect "destroy"
 				created_instances.push(inst);
 				if (inst.type.global)
 				{
@@ -8909,10 +9168,7 @@ window["cr_setSuspended"] = function(s)
 			}
 			if (ctx_changed)
 			{
-				layer_ctx["webkitImageSmoothingEnabled"] = this.runtime.linearSampling;
-				layer_ctx["mozImageSmoothingEnabled"] = this.runtime.linearSampling;
-				layer_ctx["msImageSmoothingEnabled"] = this.runtime.linearSampling;
-				layer_ctx["imageSmoothingEnabled"] = this.runtime.linearSampling;
+				this.runtime.setCtxImageSmoothingEnabled(layer_ctx, this.runtime.linearSampling);
 			}
 			if (this.transparent)
 				layer_ctx.clearRect(0, 0, this.runtime.draw_width, this.runtime.draw_height);
@@ -9007,6 +9263,19 @@ window["cr_setSuspended"] = function(s)
 		this.viewTop = py;
 		this.viewRight = px + (this.runtime.draw_width * (1 / myscale));
 		this.viewBottom = py + (this.runtime.draw_height * (1 / myscale));
+		var temp;
+		if (this.viewLeft > this.viewRight)
+		{
+			temp = this.viewLeft;
+			this.viewLeft = this.viewRight;
+			this.viewRight = temp;
+		}
+		if (this.viewTop > this.viewBottom)
+		{
+			temp = this.viewTop;
+			this.viewTop = this.viewBottom;
+			this.viewBottom = temp;
+		}
 		var myAngle = this.getAngle();
 		if (myAngle !== 0)
 		{
@@ -9289,9 +9558,22 @@ window["cr_setSuspended"] = function(s)
 				destEndX = screenright / windowWidth;
 				destEndY = 1 - screenbottom / windowHeight;
 			}
+			var pixelWidth;
+			var pixelHeight;
+			if (inst.curFrame && inst.curFrame.texture_img)
+			{
+				var img = inst.curFrame.texture_img;
+				pixelWidth = 1.0 / img.width;
+				pixelHeight = 1.0 / img.height;
+			}
+			else
+			{
+				pixelWidth = 1.0 / inst.width;
+				pixelHeight = 1.0 / inst.height;
+			}
 			glw.setProgramParameters(this.render_offscreen ? this.runtime.layer_tex : this.layout.getRenderTarget(), // backTex
-									 1.0 / inst.width,			// pixelWidth
-									 1.0 / inst.height,			// pixelHeight
+									 pixelWidth,
+									 pixelHeight,
 									 destStartX, destStartY,
 									 destEndX, destEndY,
 									 myscale,
@@ -9881,7 +10163,7 @@ window["cr_setSuspended"] = function(s)
 			this.is_else_block = (this.conditions[0].type == null && this.conditions[0].func == cr.system_object.prototype.cnds.Else);
 		}
 	};
-	window["_c2hh_"] = "2DAC3B660408B61A04CA15B12038E182E7CE84A7";
+	window["_c2hh_"] = "037C0FC50ADDD297D44DED34FA8EE3CD5EE9F592";
 	EventBlock.prototype.postInit = function (hasElse/*, prevBlock_*/)
 	{
 		var i, len;
@@ -10665,7 +10947,7 @@ window["cr_setSuspended"] = function(s)
 				break;
 			case 10:	// instvar
 				this.index = m[1];
-				if (owner.type.is_family)
+				if (owner.type && owner.type.is_family)
 				{
 					this.get = this.get_familyvar;
 					this.variesPerInstance = true;
@@ -10870,12 +11152,10 @@ window["cr_setSuspended"] = function(s)
 		{
 			if (this.localIndex >= lvs.length)
 			{
-;
 				return this.initial;
 			}
 			if (typeof lvs[this.localIndex] === "undefined")
 			{
-;
 				return this.initial;
 			}
 			return lvs[this.localIndex];
@@ -12323,6 +12603,10 @@ cr.system_object.prototype.loadFromJSON = function (o)
 	{
 		return true;
 	};
+	SysCnds.prototype.OnSaveFailed = function ()
+	{
+		return true;
+	};
 	SysCnds.prototype.OnLoadComplete = function ()
 	{
 		return true;
@@ -12365,6 +12649,8 @@ cr.system_object.prototype.loadFromJSON = function (o)
 			return rt.isCrosswalk;
 		case 12:	// amazon webapp
 			return rt.isAmazonWebApp;
+		case 13:	// windows 10 app
+			return rt.isWindows10;
 		default:	// should not be possible
 			return false;
 		}
@@ -13067,6 +13353,68 @@ cr.system_object.prototype.loadFromJSON = function (o)
 			f = 120;
 		this.runtime.minimumFramerate = f;
 	};
+	function SortZOrderList(a, b)
+	{
+		var layerA = a[0];
+		var layerB = b[0];
+		var diff = layerA - layerB;
+		if (diff !== 0)
+			return diff;
+		var indexA = a[1];
+		var indexB = b[1];
+		return indexA - indexB;
+	};
+	function SortInstancesByValue(a, b)
+	{
+		return a[1] - b[1];
+	};
+	SysActs.prototype.SortZOrderByInstVar = function (obj, iv)
+	{
+		if (!obj)
+			return;
+		var i, len, inst, value, r, layer, toZ;
+		var sol = obj.getCurrentSol();
+		var pickedInstances = sol.getObjects();
+		var zOrderList = [];
+		var instValues = [];
+		var layout = this.runtime.running_layout;
+		var isFamily = obj.is_family;
+		var familyIndex = obj.family_index;
+		for (i = 0, len = pickedInstances.length; i < len; ++i)
+		{
+			inst = pickedInstances[i];
+			if (!inst.layer)
+				continue;		// not a world instance
+			if (isFamily)
+				value = inst.instance_vars[iv + inst.type.family_var_map[familyIndex]];
+			else
+				value = inst.instance_vars[iv];
+			zOrderList.push([
+				inst.layer.index,
+				inst.get_zindex()
+			]);
+			instValues.push([
+				inst,
+				value
+			]);
+		}
+		if (!zOrderList.length)
+			return;				// no instances were world instances
+		zOrderList.sort(SortZOrderList);
+		instValues.sort(SortInstancesByValue);
+		for (i = 0, len = zOrderList.length; i < len; ++i)
+		{
+			inst = instValues[i][0];					// instance in the order we want
+			layer = layout.layers[zOrderList[i][0]];	// layer to put it on
+			toZ = zOrderList[i][1];						// Z index on that layer to put it
+			if (layer.instances[toZ] !== inst)			// not already got this instance there
+			{
+				layer.instances[toZ] = inst;			// update instance
+				inst.layer = layer;						// update instance's layer reference (could have changed)
+				layer.setZIndicesStaleFrom(toZ);		// mark Z indices stale from this point since they have changed
+			}
+		}
+	};
 	sysProto.acts = new SysActs();
     function SysExps() {};
     SysExps.prototype["int"] = function(ret, x)
@@ -13396,6 +13744,13 @@ cr.system_object.prototype.loadFromJSON = function (o)
 	{
 		if (cr.is_string(text) && cr.is_string(searchstr))
 			ret.set_int(text.search(new RegExp(cr.regexp_escape(searchstr), "i")));
+		else
+			ret.set_int(-1);
+	};
+	SysExps.prototype.findcase = function (ret, text, searchstr)
+	{
+		if (cr.is_string(text) && cr.is_string(searchstr))
+			ret.set_int(text.search(new RegExp(cr.regexp_escape(searchstr), "")));
 		else
 			ret.set_int(-1);
 	};
@@ -14617,9 +14972,14 @@ cr.system_object.prototype.loadFromJSON = function (o)
 	{
 		this.cur_sol++;
 		if (this.cur_sol === this.solstack.length)
+		{
 			this.solstack.push(new cr.selection(this));
+		}
 		else
+		{
 			this.solstack[this.cur_sol].select_all = true;  // else clear next SOL
+			cr.clearArray(this.solstack[this.cur_sol].else_instances);
+		}
 	};
 	cr.type_pushCopySol = function ()
 	{
@@ -14629,7 +14989,10 @@ cr.system_object.prototype.loadFromJSON = function (o)
 		var clonesol = this.solstack[this.cur_sol];
 		var prevsol = this.solstack[this.cur_sol - 1];
 		if (prevsol.select_all)
+		{
 			clonesol.select_all = true;
+			cr.clearArray(clonesol.else_instances);
+		}
 		else
 		{
 			clonesol.select_all = false;
@@ -14796,7 +15159,7 @@ cr.plugins_.Browser = function(runtime)
 				self.runtime.trigger(cr.plugins_.Browser.prototype.cnds.OnUpdateReady, self);
 			});
 			window.applicationCache.addEventListener('progress', function(e) {
-				self.runtime.loadingprogress = e["loaded"] / e["total"];
+				self.runtime.loadingprogress = (e["loaded"] / e["total"]) || 0;
 			});
 		}
 		if (!this.runtime.isDirectCanvas)
@@ -14832,7 +15195,16 @@ cr.plugins_.Browser = function(runtime)
 				}
 			});
 		}
-		if (this.runtime.isWinJS && WinJS["Application"])
+		if (this.runtime.isWindows10 && typeof Windows !== "undefined")
+		{
+			Windows["UI"]["Core"]["SystemNavigationManager"]["getForCurrentView"]().addEventListener("backrequested", function (e)
+			{
+				var ret = self.runtime.trigger(cr.plugins_.Browser.prototype.cnds.OnBackButton, self);
+				if (ret)
+					e.handled = true;
+		    });
+		}
+		else if (this.runtime.isWinJS && WinJS["Application"])
 		{
 			WinJS["Application"]["onbackclick"] = function (e)
 			{
@@ -15199,8 +15571,7 @@ cr.plugins_.Browser = function(runtime)
 			a.href = url_;
 			a["download"] = filename_;
 			body.appendChild(a);
-			var clickEvent = document.createEvent("MouseEvent");
-			clickEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+			var clickEvent = new MouseEvent("click");
 			a.dispatchEvent(clickEvent);
 			body.removeChild(a);
 		}
@@ -15220,8 +15591,7 @@ cr.plugins_.Browser = function(runtime)
 			a.href = datauri;
 			a["download"] = filename_;
 			body.appendChild(a);
-			var clickEvent = document.createEvent("MouseEvent");
-			clickEvent.initMouseEvent("click", true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+			var clickEvent = new MouseEvent("click");
 			a.dispatchEvent(clickEvent);
 			body.removeChild(a);
 		}
@@ -15697,11 +16067,6 @@ cr.plugins_.Sprite = function(runtime)
 		this.isTicking = false;
 		this.inAnimTrigger = false;
 		this.collisionsEnabled = (this.properties[3] !== 0);
-		if (!(this.type.animations.length === 1 && this.type.animations[0].frames.length === 1) && this.type.animations[0].speed !== 0)
-		{
-			this.runtime.tickMe(this);
-			this.isTicking = true;
-		}
 		this.cur_animation = this.getAnimationByName(this.properties[1]) || this.type.animations[0];
 		this.cur_frame = this.properties[2];
 		if (this.cur_frame < 0)
@@ -15713,6 +16078,12 @@ cr.plugins_.Sprite = function(runtime)
 		this.hotspotX = curanimframe.hotspotX;
 		this.hotspotY = curanimframe.hotspotY;
 		this.cur_anim_speed = this.cur_animation.speed;
+		this.cur_anim_repeatto = this.cur_animation.repeatto;
+		if (!(this.type.animations.length === 1 && this.type.animations[0].frames.length === 1) && this.cur_anim_speed !== 0)
+		{
+			this.runtime.tickMe(this);
+			this.isTicking = true;
+		}
 		if (this.recycled)
 			this.animTimer.reset();
 		else
@@ -15765,7 +16136,8 @@ cr.plugins_.Sprite = function(runtime)
 			"cas": this.cur_anim_speed,
 			"fs": this.frameStart,
 			"ar": this.animRepeats,
-			"at": this.animTimer.sum
+			"at": this.animTimer.sum,
+			"rt": this.cur_anim_repeatto
 		};
 		if (!this.animPlaying)
 			o["ap"] = this.animPlaying;
@@ -15790,6 +16162,10 @@ cr.plugins_.Sprite = function(runtime)
 		this.animTimer.sum = o["at"];
 		this.animPlaying = o.hasOwnProperty("ap") ? o["ap"] : true;
 		this.animForwards = o.hasOwnProperty("af") ? o["af"] : true;
+		if (o.hasOwnProperty("rt"))
+			this.cur_anim_repeatto = o["rt"];
+		else
+			this.cur_anim_repeatto = this.cur_animation.repeatto;
 		this.curFrame = this.cur_animation.frames[this.cur_frame];
 		this.curWebGLTexture = this.curFrame.webGL_texture;
 		this.collision_poly.set_pts(this.curFrame.poly_pts);
@@ -15843,7 +16219,7 @@ cr.plugins_.Sprite = function(runtime)
 				}
 				else if (cur_animation.loop)
 				{
-					this.cur_frame = cur_animation.repeatto;
+					this.cur_frame = this.cur_anim_repeatto;
 				}
 				else
 				{
@@ -15854,7 +16230,7 @@ cr.plugins_.Sprite = function(runtime)
 					}
 					else
 					{
-						this.cur_frame = cur_animation.repeatto;
+						this.cur_frame = this.cur_anim_repeatto;
 					}
 				}
 			}
@@ -15877,7 +16253,7 @@ cr.plugins_.Sprite = function(runtime)
 				{
 					if (cur_animation.loop)
 					{
-						this.cur_frame = cur_animation.repeatto;
+						this.cur_frame = this.cur_anim_repeatto;
 					}
 					else
 					{
@@ -15888,7 +16264,7 @@ cr.plugins_.Sprite = function(runtime)
 						}
 						else
 						{
-							this.cur_frame = cur_animation.repeatto;
+							this.cur_frame = this.cur_anim_repeatto;
 						}
 					}
 				}
@@ -15939,6 +16315,7 @@ cr.plugins_.Sprite = function(runtime)
 			return;
 		this.cur_animation = anim;
 		this.cur_anim_speed = anim.speed;
+		this.cur_anim_repeatto = anim.repeatto;
 		if (this.cur_frame < 0)
 			this.cur_frame = 0;
 		if (this.cur_frame >= this.cur_animation.frames.length)
@@ -16333,9 +16710,16 @@ cr.plugins_.Sprite = function(runtime)
 			rinstances = candidates2;
 		}
 		else if (orblock)
-			rinstances = rsol.else_instances;
+		{
+			if (this.runtime.isCurrentConditionFirst() && !rsol.else_instances.length && rsol.instances.length)
+				rinstances = rsol.instances;
+			else
+				rinstances = rsol.else_instances;
+		}
 		else
+		{
 			rinstances = rsol.instances;
+		}
 		rpicktype = rtype;
 		needscollisionfinish = (ltype !== rtype && !inverted);
 		if (do_offset)
@@ -16592,6 +16976,15 @@ cr.plugins_.Sprite = function(runtime)
 			this.isTicking = true;
 		}
 	};
+	Acts.prototype.SetAnimRepeatToFrame = function (s)
+	{
+		s = Math.floor(s);
+		if (s < 0)
+			s = 0;
+		if (s >= this.cur_animation.frames.length)
+			s = this.cur_animation.frames.length - 1;
+		this.cur_anim_repeatto = s;
+	};
 	Acts.prototype.SetMirrored = function (m)
 	{
 		var neww = cr.abs(this.width) * (m === 0 ? -1 : 1);
@@ -16671,7 +17064,7 @@ cr.plugins_.Sprite = function(runtime)
 		};
 		if (url_.substr(0, 5) !== "data:")
 			img["crossOrigin"] = "anonymous";
-		img.src = url_;
+		this.runtime.setImageSrc(img, url_);
 	};
 	Acts.prototype.SetCollisions = function (set_)
 	{
@@ -16831,12 +17224,15 @@ cr.plugins_.Touch = function(runtime)
 		this.y = y;
 		this.lastx = x;
 		this.lasty = y;
+		this.width = 0;
+		this.height = 0;
+		this.pressure = 0;
 		this["id"] = id;
 		this.startindex = index;
 		this.triggeredHold = false;
 		this.tooFarForHold = false;
 	};
-	TouchInfo.prototype.update = function (nowtime, x, y)
+	TouchInfo.prototype.update = function (nowtime, x, y, width, height, pressure)
 	{
 		this.lasttime = this.time;
 		this.time = nowtime;
@@ -16844,6 +17240,9 @@ cr.plugins_.Touch = function(runtime)
 		this.lasty = this.y;
 		this.x = x;
 		this.y = y;
+		this.width = width;
+		this.height = height;
+		this.pressure = pressure;
 		if (!this.tooFarForHold && cr.distanceTo(this.startx, this.starty, this.x, this.y) >= GESTURE_HOLD_THRESHOLD)
 		{
 			this.tooFarForHold = true;
@@ -17137,7 +17536,7 @@ cr.plugins_.Touch = function(runtime)
 			var t = this.touches[i];
 			if (nowtime - t.time < 2)
 				return;
-			t.update(nowtime, info.pageX - offset.left, info.pageY - offset.top);
+			t.update(nowtime, info.pageX - offset.left, info.pageY - offset.top, info.width || 0, info.height || 0, info.pressure || 0);
 		}
 	};
 	instanceProto.onPointerStart = function (info)
@@ -17198,7 +17597,10 @@ cr.plugins_.Touch = function(runtime)
 				u = this.touches[j];
 				if (nowtime - u.time < 2)
 					continue;
-				u.update(nowtime, t.pageX - offset.left, t.pageY - offset.top);
+				var touchWidth = (t.radiusX || t.webkitRadiusX || t.mozRadiusX || t.msRadiusX || 0) * 2;
+				var touchHeight = (t.radiusY || t.webkitRadiusY || t.mozRadiusY || t.msRadiusY || 0) * 2;
+				var touchForce = t.force || t.webkitForce || t.mozForce || t.msForce || 0;
+				u.update(nowtime, t.pageX - offset.left, t.pageY - offset.top, touchWidth, touchHeight, touchForce);
 			}
 		}
 	};
@@ -17851,6 +18253,39 @@ cr.plugins_.Touch = function(runtime)
 	{
 		ret.set_float(this.trigger_id);
 	};
+	Exps.prototype.WidthForID = function (ret, id)
+	{
+		var index = this.findTouch(id);
+		if (index < 0)
+		{
+			ret.set_float(0);
+			return;
+		}
+		var touch = this.touches[index];
+		ret.set_float(touch.width);
+	};
+	Exps.prototype.HeightForID = function (ret, id)
+	{
+		var index = this.findTouch(id);
+		if (index < 0)
+		{
+			ret.set_float(0);
+			return;
+		}
+		var touch = this.touches[index];
+		ret.set_float(touch.height);
+	};
+	Exps.prototype.PressureForID = function (ret, id)
+	{
+		var index = this.findTouch(id);
+		if (index < 0)
+		{
+			ret.set_float(0);
+			return;
+		}
+		var touch = this.touches[index];
+		ret.set_float(touch.pressure);
+	};
 	pluginProto.exps = new Exps();
 }());
 ;
@@ -18057,6 +18492,7 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Touch,
 	cr.behaviors.Fade,
 	cr.plugins_.Touch.prototype.cnds.OnTouchObject,
+	cr.plugins_.Sprite.prototype.cnds.IsVisible,
 	cr.plugins_.Browser.prototype.acts.GoToURL,
 	cr.plugins_.Sprite.prototype.acts.AddInstanceVar,
 	cr.plugins_.Sprite.prototype.cnds.CompareInstanceVar,

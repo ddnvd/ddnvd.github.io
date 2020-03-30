@@ -19440,11 +19440,11 @@ cr.behaviors.Sin = function(runtime)
 	behaviorProto.exps = new Exps();
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Mouse,
 	cr.plugins_.Keyboard,
+	cr.plugins_.Mouse,
+	cr.plugins_.Browser,
 	cr.plugins_.Text,
 	cr.plugins_.Sprite,
-	cr.plugins_.Browser,
 	cr.behaviors.Sin,
 	cr.behaviors.Rotate,
 	cr.behaviors.Fade,

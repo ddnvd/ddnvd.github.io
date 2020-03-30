@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1585570908,
+	"version": 1585584327,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -20,6 +20,7 @@
 		"images/fader-sheet0.png",
 		"images/window-sheet0.png",
 		"images/pokr-sheet0.png",
+		"images/download-sheet0.png",
 		"icon-16.png",
 		"icon-32.png",
 		"icon-114.png",

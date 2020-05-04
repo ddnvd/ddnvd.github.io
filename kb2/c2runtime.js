@@ -31128,16 +31128,16 @@ cr.behaviors.solid = function(runtime)
 	behaviorProto.acts = new Acts();
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Mouse,
 	cr.plugins_.Keyboard,
-	cr.plugins_.Q3Dlight,
-	cr.plugins_.Q3Dobj,
-	cr.plugins_.Q3Dsprite,
-	cr.plugins_.Sprite,
-	cr.plugins_.Text,
-	cr.plugins_.Quazi3D,
+	cr.plugins_.Mouse,
 	cr.plugins_.Audio,
 	cr.plugins_.Browser,
+	cr.plugins_.Q3Dlight,
+	cr.plugins_.Q3Dobj,
+	cr.plugins_.Text,
+	cr.plugins_.Quazi3D,
+	cr.plugins_.Sprite,
+	cr.plugins_.Q3Dsprite,
 	cr.behaviors.Sin,
 	cr.behaviors.solid,
 	cr.behaviors.EightDir,
@@ -31225,5 +31225,6 @@ cr.getObjectRefTable = function () { return [
 	cr.plugins_.Sprite.prototype.acts.SetInstanceVar,
 	cr.plugins_.Sprite.prototype.cnds.IsOverlapping,
 	cr.system_object.prototype.cnds.Compare,
+	cr.plugins_.Sprite.prototype.cnds.CompareInstanceVar,
 	cr.behaviors.EightDir.prototype.cnds.IsMoving
 ];};

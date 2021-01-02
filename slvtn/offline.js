@@ -1,5 +1,5 @@
 ﻿{
-	"version": 1608509124,
+	"version": 1609617621,
 	"fileList": [
 		"data.js",
 		"c2runtime.js",
@@ -16,8 +16,6 @@
 		"images/text-sheet1.png",
 		"images/text-sheet2.png",
 		"images/text-sheet3.png",
-		"images/text-sheet4.png",
-		"images/text-sheet5.png",
 		"images/fish-sheet0.png",
 		"images/fish_touch-sheet0.png",
 		"images/button-sheet0.png",
@@ -25,9 +23,9 @@
 		"images/swipeleft-sheet0.png",
 		"images/swipeleft-sheet1.png",
 		"images/swipeleft-sheet2.png",
-		"images/prayer-sheet0.png",
 		"images/buttton-sheet0.png",
 		"images/blink-sheet0.png",
+		"images/overlaer-sheet0.png",
 		"icon-16.png",
 		"icon-32.png",
 		"icon-114.png",

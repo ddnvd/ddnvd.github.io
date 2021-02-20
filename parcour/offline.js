@@ -1,0 +1,32 @@
+﻿{
+	"version": 1613851206,
+	"fileList": [
+		"data.js",
+		"c2runtime.js",
+		"jquery-2.1.1.min.js",
+		"images/bg-sheet0.png",
+		"images/cour-sheet0.png",
+		"images/venique-sheet0.png",
+		"images/par-sheet0.png",
+		"images/nepropar-sheet0.png",
+		"images/replay-sheet0.png",
+		"images/play-sheet0.png",
+		"images/logo-sheet0.png",
+		"media/parcour.ogg",
+		"media/die.ogg",
+		"media/kill1.ogg",
+		"media/kill2.ogg",
+		"media/kill3.ogg",
+		"media/kill4.ogg",
+		"media/kill5.ogg",
+		"media/kill6.ogg",
+		"media/kill7.ogg",
+		"media/kill8.ogg",
+		"icon-16.png",
+		"icon-32.png",
+		"icon-114.png",
+		"icon-128.png",
+		"icon-256.png",
+		"loading-logo.png"
+	]
+}

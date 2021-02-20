@@ -18488,8 +18488,8 @@ cr.behaviors.Fade = function(runtime)
 }());
 cr.getObjectRefTable = function () { return [
 	cr.plugins_.Browser,
-	cr.plugins_.Touch,
 	cr.plugins_.Sprite,
+	cr.plugins_.Touch,
 	cr.behaviors.Fade,
 	cr.plugins_.Touch.prototype.cnds.OnTouchObject,
 	cr.plugins_.Sprite.prototype.cnds.IsVisible,

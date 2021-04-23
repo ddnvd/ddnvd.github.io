@@ -19239,10 +19239,10 @@ cr.plugins_.Touch = function(runtime)
 	pluginProto.exps = new Exps();
 }());
 cr.getObjectRefTable = function () { return [
-	cr.plugins_.Browser,
 	cr.plugins_.Keyboard,
-	cr.plugins_.Sprite,
+	cr.plugins_.Browser,
 	cr.plugins_.Text,
+	cr.plugins_.Sprite,
 	cr.plugins_.Touch,
 	cr.system_object.prototype.cnds.OnLayoutStart,
 	cr.plugins_.Text.prototype.acts.SetWebFont,
@@ -19260,15 +19260,16 @@ cr.getObjectRefTable = function () { return [
 	cr.system_object.prototype.exps.scrolly,
 	cr.system_object.prototype.exps.tokenat,
 	cr.system_object.prototype.exps.newline,
-	cr.system_object.prototype.cnds.CompareVar,
-	cr.system_object.prototype.acts.SetCanvasSize,
-	cr.system_object.prototype.acts.Scroll,
-	cr.system_object.prototype.acts.Wait,
+	cr.plugins_.Touch.prototype.cnds.OnDoubleTapGesture,
 	cr.system_object.prototype.acts.SnapshotCanvas,
 	cr.system_object.prototype.cnds.OnCanvasSnapshot,
 	cr.plugins_.Browser.prototype.acts.InvokeDownload,
 	cr.system_object.prototype.exps.canvassnapshot,
 	cr.system_object.prototype.acts.GoToLayout,
+	cr.system_object.prototype.cnds.CompareVar,
+	cr.system_object.prototype.acts.SetCanvasSize,
+	cr.system_object.prototype.acts.Scroll,
+	cr.system_object.prototype.acts.Wait,
 	cr.plugins_.Touch.prototype.cnds.OnTouchObject,
 	cr.system_object.prototype.acts.SetVar
 ];};

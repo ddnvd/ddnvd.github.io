@@ -19263,6 +19263,7 @@ cr.getObjectRefTable = function () { return [
 	cr.system_object.prototype.cnds.CompareVar,
 	cr.system_object.prototype.acts.SetCanvasSize,
 	cr.system_object.prototype.acts.Scroll,
+	cr.system_object.prototype.acts.Wait,
 	cr.system_object.prototype.acts.SnapshotCanvas,
 	cr.system_object.prototype.cnds.OnCanvasSnapshot,
 	cr.plugins_.Browser.prototype.acts.InvokeDownload,

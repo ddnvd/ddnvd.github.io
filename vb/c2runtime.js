@@ -19269,7 +19269,7 @@ cr.getObjectRefTable = function () { return [
 	cr.system_object.prototype.cnds.CompareVar,
 	cr.system_object.prototype.acts.SetCanvasSize,
 	cr.system_object.prototype.acts.Scroll,
-	cr.system_object.prototype.acts.Wait,
+	cr.system_object.prototype.exps.random,
 	cr.plugins_.Touch.prototype.cnds.OnTouchObject,
 	cr.system_object.prototype.acts.SetVar
 ];};

@@ -20095,9 +20095,9 @@ cr.behaviors.Sin = function(runtime)
 }());
 cr.getObjectRefTable = function () { return [
 	cr.plugins_.Function,
-	cr.plugins_.Sprite,
 	cr.plugins_.Browser,
 	cr.plugins_.Keyboard,
+	cr.plugins_.Sprite,
 	cr.plugins_.Touch,
 	cr.behaviors.Bullet,
 	cr.behaviors.Fade,

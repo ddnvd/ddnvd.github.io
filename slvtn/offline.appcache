@@ -1,16 +1,13 @@
 ﻿CACHE MANIFEST
-#1632626181
+#1635776650
 data.js
 c2runtime.js
 jquery-2.1.1.min.js
-images/logo-sheet0.png
 images/fader-sheet0.png
-images/logo2-sheet0.png
-images/logo2-sheet1.png
-images/logo2-sheet2.png
 images/text-sheet0.png
 images/text-sheet1.png
 images/text-sheet2.png
+images/text-sheet3.png
 images/fish-sheet0.png
 images/fish_touch-sheet0.png
 images/button-sheet0.png
@@ -19,8 +16,10 @@ images/swipeleft-sheet0.png
 images/swipeleft-sheet1.png
 images/swipeleft-sheet2.png
 images/buttton-sheet0.png
-images/blink-sheet0.png
 images/overlaer-sheet0.png
+images/buttons-sheet0.png
+images/sprite2-sheet0.png
+images/select-sheet0.png
 icon-16.png
 icon-32.png
 icon-114.png
